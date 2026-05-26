@@ -22,8 +22,8 @@ export default function Page() {
      * Inject window.storage shim — proxies all reads/writes to /api/db
      * so the bot component needs zero changes between local & production.
      */
-    if (typeof window !== 'undefined' && !window.storage) {
-      window.storage = {
+    if (typeof window !== 'undefined' && !(window as any).storage) {
+      (window as any).storage = {
         async get(key: string) {
           try {
             const r = await fetch(`/api/db?key=${encodeURIComponent(key)}`);
