@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "node -e \"\nconst fs=require('fs');\nlet c=fs.readFileSync('educational-bot.jsx','utf8');\nconst MARKER='\\n}\\n\\n        <div style={{marginBottom:22}}>';\nif(c.includes(MARKER)){\n  const i=c.indexOf(MARKER);\n  const j=c.indexOf('\\n// ============================================================\\n// ADMIN LOGIN');\n  c=c.slice(0,i+2)+c.slice(j);\n  fs.writeFileSync('educational-bot.jsx',c);\n  console.log('educational-bot.jsx: orphaned fragment removed');\n} else { console.log('educational-bot.jsx: already clean'); }\n\"",
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
