@@ -650,43 +650,6 @@ function UserGuide({onClose}){
     </div>
   );
 }
-        <div style={{marginBottom:22}}>
-          <div className="gs">🎓 מה זה בוט לימוד?</div>
-          <p style={{fontSize:".86rem",color:"var(--tx2)",lineHeight:1.7}}>
-            מערכת פדגוגית לתלמידים עולים לקראת בגרות. הבוט מנחה בשיטה <strong>סוקרטית</strong> — שואל שאלות, נותן רמזים, ומעודד לכתוב בעברית. <strong>הבוט לא כותב בשבילך.</strong>
-          </p>
-        </div>
-        <div style={{marginBottom:22}}>
-          <div className="gs">👩‍🏫 כניסת מורה</div>
-          {["הכנס שם, מקצוע, שכבה וסמל מוסד (6 ספרות).","פתח כיתה חדשה וקבל קוד — שתף עם תלמידיך.","העלה חומרי לימוד ובחר אם לשתף עם הצוות.","צור יחידות לימוד עם שאלה, סוג משימה ורמת תמיכה.","עקוב אחר התקדמות תלמידים בלוח הבקרה."]
-            .map((t,i)=><div key={i} className="gstep"><div className="gnum">{i+1}</div><div className="gt">{t}</div></div>)}
-        </div>
-        <div style={{marginBottom:22}}>
-          <div className="gs">🎒 כניסת תלמיד</div>
-          {["הכנס שם, כיתה וקוד שקיבלת מהמורה.","בחר משימה מהרשימה ולחץ 'התחל שיעור'.","כתוב תשובתך בעברית בתיבת הכתיבה.","אם תקוע — בקש רמז (מספר מוגבל!).","קבל משוב מהבוט ושכתב עד שתהיה מרוצה."]
-            .map((t,i)=><div key={i} className="gstep"><div className="gnum">{i+1}</div><div className="gt">{t}</div></div>)}
-        </div>
-        <div style={{marginBottom:18}}>
-          <div className="gs">🔑 קודי דמו לבדיקה</div>
-          <div style={{display:"flex",gap:9,flexWrap:"wrap"}}>
-            {defaultClasses.map(c=>(
-              <div key={c.code} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:8,padding:"8px 13px",textAlign:"center"}}>
-                <div className="cc" style={{fontSize:".9rem",padding:"3px 11px"}}>{c.code}</div>
-                <div style={{fontSize:".7rem",color:"var(--tx3)",marginTop:4}}>{c.subject} {c.grade}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{marginBottom:18}}>
-          <div className="gs">🔒 אבטחת מידע</div>
-          <p style={{fontSize:".84rem",color:"var(--tx2)",lineHeight:1.7}}>כל בית ספר מנוהל בנפרד לפי סמל המוסד. מורה מבית ספר A אינו יכול לראות נתוני בית ספר B. מנהל המערכת רואה סטטיסטיקות כלליות בלבד.</p>
-        </div>
-        <button className="btn bp wf" onClick={onClose}>הבנתי — סגור מדריך</button>
-        <div style={{textAlign:"center",fontSize:".68rem",color:"var(--tx3)",marginTop:10}}>© כל הזכויות שמורות לשוורץ אבי</div>
-      </div>
-    </div>
-  );
-}
 
 // ============================================================
 // ADMIN LOGIN & PANEL
