@@ -126,25 +126,113 @@ const initialMaterials=[
    author:"אבי שטרן",shared:true,ownerId:"t4"},
 ];
 
-function genCode(){return Math.random().toString(36).substring(2,8).toUpperCase();}
+const SKILL_TYPES=["הסבר מושג","השוואה בין מושגים","סיבה ותוצאה","ניתוח טקסט/מקור","טיעון ונימוק","שכתוב ועריכה","תרגול שאלת בגרות","הבעת עמדה"];
+
+// Subject-specific defaults — מה הבוחן מצפה לפי מקצוע
+const SUBJECT_DEFAULTS={
+  "היסטוריה":{
+    emphases:[
+      "התייחס לפחות ל-2 גורמים/תוצאות עם דוגמה היסטורית לכל אחד",
+      "השתמש בשמות, תאריכים ומקומות מדויקים",
+      "הסבר את הקשר הסיבתי — לא רק לתאר אלא להסביר",
+      "סיים בהכללה או מסקנה היסטורית"
+    ],
+    templates:[
+      "גורם ראשון הוא _______ . הדבר בא לידי ביטוי ב_______. כתוצאה מכך _______.",
+      "בהשוואה בין _______ ל_______ ניתן לראות כי שניהם _______, אולם ההבדל המרכזי הוא _______.",
+      "אירוע זה גרם ל_______ משום ש_______. ניתן לראות זאת ב_______."
+    ],
+    skills:["זיהוי גורמים","תיאור תהליך","השוואה בין תקופות","ניתוח מקור ראשוני","הערכת השלכות"]
+  },
+  "ספרות":{
+    emphases:[
+      "זהה את הדובר/מספר ואת נקודת מבטו",
+      "ציין לפחות 2 אמצעים אמנותיים עם ציטוט ותפקיד",
+      "קשר בין אמצעי אמנותי למסר היצירה",
+      "השתמש בשפה ספרותית: מוטיב, דימוי, מטפורה, חזרה, ניגוד"
+    ],
+    templates:[
+      "האמצעי האמנותי _______ מופיע ב'_______'. תפקידו הוא _______ ובכך מדגיש המחבר/ת את הרעיון של _______.",
+      "הדובר בשיר/סיפור הוא _______. הוא/היא מרגיש/ה _______ כפי שניתן לראות מ_______.",
+      "המוטיב המרכזי ביצירה הוא _______. הוא מופיע ב_______ ומשמש ל_______."
+    ],
+    skills:["זיהוי דובר ונקודת מבט","ניתוח אמצעים אמנותיים","פענוח מסר","השוואה בין טקסטים","כתיבה יצירתית"]
+  },
+  "תנ\"ך":{
+    emphases:[
+      "פרש את הפסוק במילים שלך לפני הניתוח",
+      "השתמש בשמות הדמויות ובפסוקים ספציפיים",
+      "התייחס לרקע ההיסטורי/תרבותי של הסיפור",
+      "זהה את הנושא המוסרי/רוחני המרכזי"
+    ],
+    templates:[
+      "מפסוק '_______' עולה כי _______. ניתן להסביר זאת על ידי _______.",
+      "הדמות _______ מתאפיינת ב_______. הדבר בא לידי ביטוי כאשר _______.",
+      "הנושא המרכזי בקטע הוא _______. הוא מתבטא ב_______ ומלמד אותנו _______."
+    ],
+    skills:["פרשנות פסוקים","ניתוח דמויות","זיהוי נושאים מוסריים","הקשר היסטורי","השוואה בין סיפורים"]
+  },
+  "אזרחות":{
+    emphases:[
+      "הגדר את המושג המדויק לפני הניתוח",
+      "ציין את החוק/עיקרון/מסמך הרלוונטי",
+      "הבא דוגמה מהמציאות הישראלית",
+      "הצג גם צד שני/נגדי — האיזון בין זכויות"
+    ],
+    templates:[
+      "המושג _______ מוגדר כ_______. הוא מעוגן ב_______ ומתבטא בחיי המדינה ב_______.",
+      "הזכות/חובה _______ מחד מאפשרת _______, אולם מאידך עלולה לפגוע ב_______. לכן יש לאזן בין _______.",
+      "מדיניות זו נובעת מהעיקרון של _______. ניתן לראות זאת ב_______ . לעומת זאת, מתנגדים טוענים כי _______."
+    ],
+    skills:["הגדרת מושגים","ניתוח זכויות וחובות","טיעון ונגד-טיעון","קשר לחקיקה","הבעת עמדה מנומקת"]
+  }
+};
 
 function buildSP(unit,langPair){
   const sec=langPair?.secondary==="ru"?"רוסית":"אנגלית";
   const sl=SUPPORT_LEVELS.find(s=>s.id===unit?.supportLevel)||SUPPORT_LEVELS[0];
+  const subDef=SUBJECT_DEFAULTS[unit?.subject]||{};
+  const emphases=(unit?.bagrutEmphases||subDef.emphases||[]).join("\n- ");
+  const templates=(unit?.templates||subDef.templates||[]).join("\n  • ");
+  const skills=(unit?.skills||subDef.skills||[]).join(", ");
+  const content=unit?.materialContent?"## חומר לימוד שהמורה העלה:\n"+unit.materialContent:"";
+
   return `אתה בוט לימודי סוקרטי לעולים חדשים. שמך: "מורה-בוט".
 שפת יעד: עברית. שפת תיווך: ${sec}. רמת תמיכה: ${sl.label} — ${sl.desc}
-יחידה: ${unit?.title||""} | מקצוע: ${unit?.subject||""} | כיתה: ${unit?.grade||""}
-שאלה: ${unit?.question||""}
-מילות מפתח: ${unit?.keywords?.join(", ")||""} | תבניות: ${unit?.templates?.join(" | ")||""}
-רמזים: ${unit?.hintPolicy==="unlimited"?"ללא הגבלה":"עד "+unit?.hintPolicy}
+
+## יחידת הלמידה:
+מקצוע: ${unit?.subject||""} | כיתה: ${unit?.grade||""} | כותרת: ${unit?.title||""}
+שאלת הלמידה: ${unit?.question||""}
+סוג משימה: ${unit?.taskType||""} | מיומנות: ${unit?.skillType||""}
+רמזים מותרים: ${unit?.hintPolicy==="unlimited"?"ללא הגבלה":"עד "+unit?.hintPolicy}
+
+${content}
+
+## דגשי בגרות — מה הבוחן מצפה לראות:
+- ${emphases||"תשובה מובנית עם דוגמאות"}
+
+## תבניות כתיבה להנחיית התלמיד:
+  • ${templates||"ענה בצורה מובנית עם דוגמה"}
+
+## מילות מפתח: ${(unit?.keywords||[]).join(", ")||""}
+## מיומנויות לתרגול: ${skills}
 
 ## כללים מחייבים:
-1. אסור למסור תשובה מלאה לשאלת הלמידה.
-2. "כתוב לי" → החזר לתבנית/רמז/שאלת מיקוד.
-3. אל תשלים פסקה שלמה לפני שהתלמיד ניסה.
-4. חזק ניסוח עצמאי גם אם יש שגיאות.
-## מדרג עזרה: שאלת מיקוד → פירוק משימה → שליפה מודרכת → רמז חלקי → תבנית ניסוח → משוב → שכתוב מונחה
-## פורמט: סמן [רמז:] [תבנית:] [משוב:] | עד 4 משפטים לתגובה | טון חם וסבלני.`;
+1. אסור למסור תשובה מלאה — גם אם התלמיד מתחנן.
+2. "כתוב לי את התשובה" → הצע תבנית ריקה + שאלת מיקוד.
+3. אל תשלים פסקה שלמה לפני שהתלמיד ניסה בעצמו.
+4. השתמש בדגשי הבגרות כדי לכוון את הניסוח.
+5. כשתלמיד כותב — תן משוב ספציפי על מה חסר לפי הדגשים.
+6. בשפה ${sec}: אפשר להסביר מושגים בלבד — לא לכתוב את התשובה.
+
+## מדרג עזרה:
+1. שאלת מיקוד  2. פירוק משימה  3. שליפה מודרכת
+4. רמז חלקי    5. תבנית ניסוח  6. משוב על כתיבה  7. שכתוב מונחה
+
+## פורמט תגובה:
+- סמן [רמז:] [תבנית:] [משוב:]
+- עד 4 משפטים לתגובה
+- טון חם, מעודד, סבלני — כל ניסיון ראוי לחיזוק`;
 }
 
 async function callClaude(messages,sys){
@@ -361,16 +449,207 @@ hr.dv{border:none;border-top:1px solid var(--border);margin:16px 0;}
 `;
 
 // ============================================================
-// USER GUIDE
+// USER GUIDE — with real teacher examples per subject
 // ============================================================
 function UserGuide({onClose}){
+  const [tab,setTab]=useState("teacher");
+  const TABS=[{id:"teacher",l:"👩‍🏫 מורה"},{id:"student",l:"🎒 תלמיד"},{id:"examples",l:"📖 דוגמאות"},{id:"security",l:"🔒 אבטחה"}];
+  const EXAMPLES={
+    "היסטוריה":{
+      unit:"גורמי העלייה מברית המועצות — כיתה י׳",
+      question:"הסבר שני גורמים מרכזיים לעלייה הגדולה מברית המועצות בשנות ה-90.",
+      material:"גורמים: פוליטיים (גלאסנוסט, נפילת ברה\"מ), כלכליים (משבר, אבטלה), תרבותיים (גאווה יהודית, אנטישמיות). תוצאה: ~מיליון עולים.",
+      emphases:["ציין לפחות 2 גורמים עם הסבר","הבא דוגמה היסטורית לכל גורם","הסבר קשר סיבתי — לא רק תיאור"],
+      template:"גורם ראשון הוא _____. הדבר בא לידי ביטוי ב_____. כתוצאה מכך _____.",
+      dialog:[
+        {who:"תלמיד",msg:"כתוב לי את התשובה"},
+        {who:"בוט",msg:"[תבנית:] אני אתן לך מסגרת: 'גורם ראשון הוא ___. הדבר בא לידי ביטוי ב___.' — מה לדעתך הגורם הכלכלי?"},
+        {who:"תלמיד",msg:"הכסף לא היה טוב"},
+        {who:"בוט",msg:"כיוון נכון! 💡 המונח המדויק הוא 'משבר כלכלי ואבטלה גבוהה'. נסה לשלב זאת בתבנית."},
+        {who:"תלמיד",msg:"גורם ראשון הוא המשבר הכלכלי. הדבר בא לידי ביטוי באבטלה גבוהה. כתוצאה מכך אנשים רצו לעזוב."},
+        {who:"בוט",msg:"[משוב:] ✅ מבנה מצוין! הוסף מספר — כ-20% אבטלה. עכשיו עבור לגורם השני."},
+      ]
+    },
+    "ספרות":{
+      unit:"ניתוח שיר — לאה גולדברג, כיתה י׳",
+      question:"זהה שני אמצעים אמנותיים בשיר 'לי ולך' והסבר את תפקידם.",
+      material:"שיר אהבה ופרידה. אמצעים: אנפורה ('לי ולך'), מטפורה ('כאבן בלב הים'). מסר: האהבה נמשכת בפרידה.",
+      emphases:["ציין אמצעי + ציטוט + תפקיד","קשר לנושא/מסר היצירה","השתמש בשפה ספרותית"],
+      template:"האמצעי _____ מופיע ב'_____'. תפקידו _____, ובכך מדגישה המשוררת את _____.",
+      dialog:[
+        {who:"תלמיד",msg:"אני לא מבין מה זה אמצעי אמנותי"},
+        {who:"בוט",msg:"שאלה טובה! אמצעי אמנותי הוא כלי שהמשורר משתמש בו כדי לעורר רגש. למשל — אנפורה היא חזרה על מילה. שים לב: איזו מילה חוזרת בשיר?"},
+        {who:"תלמיד",msg:"המילה 'לי ולך' חוזרת"},
+        {who:"בוט",msg:"[רמז:] בדיוק! זו אנפורה. עכשיו נסה להשתמש בתבנית: 'האמצעי אנפורה מופיע ב___. תפקידו ___.'"},
+      ]
+    },
+    "אזרחות":{
+      unit:"זכות לשוויון — כיתה ט׳",
+      question:"הגדר את הזכות לשוויון והסבר כיצד היא מוגנת בחוק הישראלי.",
+      material:"שוויון: התייחסות זהה ללא אפליה. מעוגן: חוק יסוד כבוד האדם, הצהרת העצמאות. סעיף 1 אוסר אפליה.",
+      emphases:["הגדר מושג מדויק","ציין חוק/מסמך ספציפי","הבא דוגמה מהמציאות"],
+      template:"הזכות ל_____ מוגדרת כ_____. היא מעוגנת ב_____ ומתבטאת ב_____.",
+      dialog:[
+        {who:"תלמיד",msg:"שוויון זה שכולם שווים"},
+        {who:"בוט",msg:"[רמז:] התחלה נכונה! הגדרה משפטית מדויקת יותר: 'התייחסות זהה ללא אפליה על רקע גזע, דת, מין...' — באיזה חוק זה מעוגן?"},
+        {who:"תלמיד",msg:"בחוק יסוד כבוד האדם וחירותו"},
+        {who:"בוט",msg:"[משוב:] ✅ מצוין! עכשיו הבא דוגמה קונקרטית — מתי בית המשפט הגן על זכות זו?"},
+      ]
+    }
+  };
+  const [selEx,setSelEx]=useState("היסטוריה");
+  const ex=EXAMPLES[selEx];
+
   return(
     <div className="ov" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="mo wide">
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:18}}>
-          <div style={{fontSize:"1.28rem",fontWeight:700}}>📖 מדריך למשתמש</div>
+      <div className="mo wide" style={{maxWidth:700}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div style={{fontSize:"1.25rem",fontWeight:700}}>📖 מדריך למשתמש — בוט לימוד</div>
           <button className="btn bg sm" onClick={onClose}>✕</button>
         </div>
+
+        {/* Tabs */}
+        <div style={{display:"flex",gap:4,marginBottom:20,background:"var(--bg3)",borderRadius:"var(--r2)",padding:4,flexWrap:"wrap"}}>
+          {TABS.map(t=><div key={t.id} onClick={()=>setTab(t.id)}
+            style={{flex:1,textAlign:"center",padding:"7px 0",borderRadius:7,cursor:"pointer",
+              fontSize:".8rem",fontWeight:600,minWidth:80,
+              background:tab===t.id?"var(--teal)":"transparent",
+              color:tab===t.id?"var(--bg)":"var(--tx2)"}}>{t.l}</div>)}
+        </div>
+
+        {/* ── TEACHER TAB ── */}
+        {tab==="teacher"&&(
+          <>
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:".94rem",fontWeight:700,color:"var(--teal)",marginBottom:12}}>👩‍🏫 כניסת מורה — שלב אחר שלב</div>
+              {[
+                {n:1,t:"כניסה למערכת",d:'לחץ "אני מורה" ← הכנס שם, מקצוע, שכבה, סמל מוסד (123456 לדמו)'},
+                {n:2,t:"פתיחת כיתה",d:'בלוח הניהול → "פתח כיתה חדשה" ← בחר מקצוע+שכבה ← קבל קוד ← שתף עם תלמידים'},
+                {n:3,t:"העלאת חומר",d:'טאב "החומרים שלי" → "העלה חומר" ← הדבק סיכום נושא, מילות מפתח, תבניות כתיבה'},
+                {n:4,t:"יצירת יחידת למידה",d:'טאב "יחידות לימוד" → "יחידה חדשה" ← 3 שלבים: בסיס → חומר → פדגוגיה'},
+                {n:5,t:"בדיקת תצוגה מקדימה",d:'על כל יחידה לחץ "🤖 תצוגה מקדימה" כדי לראות מה התלמיד יחווה'},
+                {n:6,t:"מעקב תלמידים",d:'טאב "לוח בקרה" ← מיספרי משימות, רמזים, פעילות אחרונה של כל תלמיד'},
+              ].map((s,i)=>(
+                <div key={i} style={{display:"flex",gap:11,marginBottom:11,alignItems:"flex-start"}}>
+                  <div style={{background:"var(--teal)",color:"var(--bg)",width:24,height:24,borderRadius:"50%",
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",fontWeight:700,flexShrink:0,marginTop:1}}>{s.n}</div>
+                  <div><div style={{fontWeight:600,fontSize:".87rem"}}>{s.t}</div>
+                    <div style={{fontSize:".8rem",color:"var(--tx2)",marginTop:2,lineHeight:1.5}}>{s.d}</div></div>
+                </div>
+              ))}
+            </div>
+            <div className="alrt ai">
+              <strong>💡 טיפ:</strong> ככל שתמלא יותר פרטים ביחידת הלמידה (חומר + דגשי בגרות + תבניות) — כך הבוט יהיה מדויק ומועיל יותר לתלמיד.
+            </div>
+          </>
+        )}
+
+        {/* ── STUDENT TAB ── */}
+        {tab==="student"&&(
+          <>
+            <div style={{marginBottom:20}}>
+              <div style={{fontSize:".94rem",fontWeight:700,color:"var(--amber)",marginBottom:12}}>🎒 כניסת תלמיד — שלב אחר שלב</div>
+              {[
+                {n:1,t:"כניסה",d:"לחץ 'אני תלמיד' ← הכנס שם, כיתה, קוד שקיבלת מהמורה"},
+                {n:2,t:"בחר משימה",d:"מהרשימה בחר את המשימה שהמורה הקצה — לחץ 'התחל →'"},
+                {n:3,t:"לחץ 'התחל שיעור'",d:"הבוט יפתח את השיחה ויציג את המשימה"},
+                {n:4,t:"כתוב בעצמך",d:"כתוב את תשובתך בתיבה — Enter לשליחה, Shift+Enter לשורה חדשה"},
+                {n:5,t:"בקש עזרה בחוכמה",d:"אם תקוע — לחץ '💡 רמז'. שים לב: יש מגבלה! השתמש בחכמה"},
+                {n:6,t:"צפה בהתקדמות",d:"טאב 'ההתקדמות שלי' ← ראה שיעורים, רמזים, ומסלול השפה שלך"},
+              ].map((s,i)=>(
+                <div key={i} style={{display:"flex",gap:11,marginBottom:11,alignItems:"flex-start"}}>
+                  <div style={{background:"var(--amber)",color:"var(--bg)",width:24,height:24,borderRadius:"50%",
+                    display:"flex",alignItems:"center",justifyContent:"center",fontSize:".76rem",fontWeight:700,flexShrink:0,marginTop:1}}>{s.n}</div>
+                  <div><div style={{fontWeight:600,fontSize:".87rem"}}>{s.t}</div>
+                    <div style={{fontSize:".8rem",color:"var(--tx2)",marginTop:2,lineHeight:1.5}}>{s.d}</div></div>
+                </div>
+              ))}
+            </div>
+            <div className="alrt aw">
+              <strong>⚠️ חשוב:</strong> הבוט לא יכתוב בשבילך — זה לא תפקידו. הוא יעזור לך לחשוב ולנסח בעצמך.
+            </div>
+            <div style={{marginTop:14}}>
+              <div style={{fontSize:".84rem",fontWeight:600,marginBottom:8}}>🔑 קודי דמו לבדיקה:</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {defaultClasses.map(c=>(
+                  <div key={c.code} style={{background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:8,padding:"7px 12px",textAlign:"center"}}>
+                    <div className="cc" style={{fontSize:".88rem",padding:"2px 10px"}}>{c.code}</div>
+                    <div style={{fontSize:".69rem",color:"var(--tx3)",marginTop:3}}>{c.subject} {c.grade}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── EXAMPLES TAB ── */}
+        {tab==="examples"&&(
+          <>
+            <div style={{fontSize:".94rem",fontWeight:700,color:"var(--violet)",marginBottom:14}}>📖 דוגמאות הפעלה לפי מקצוע</div>
+            {/* Subject selector */}
+            <div style={{display:"flex",gap:6,marginBottom:18,flexWrap:"wrap"}}>
+              {Object.keys(EXAMPLES).map(s=>(
+                <button key={s} className={`btn ${selEx===s?"bp":"bs"} sm`} onClick={()=>setSelEx(s)}>{s}</button>
+              ))}
+            </div>
+            {/* Example content */}
+            <div style={{background:"var(--bg3)",borderRadius:"var(--r)",padding:15,marginBottom:12}}>
+              <div style={{fontWeight:700,color:"var(--teal)",marginBottom:4,fontSize:".9rem"}}>📚 {ex.unit}</div>
+              <div style={{fontSize:".82rem",color:"var(--tx2)",marginBottom:8}}>שאלה: <em>{ex.question}</em></div>
+              <div style={{fontSize:".79rem",color:"var(--tx3)"}}>חומר שהמורה מעלה: {ex.material}</div>
+            </div>
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:".82rem",fontWeight:600,color:"var(--amber)",marginBottom:6}}>🎯 דגשי בגרות:</div>
+              {ex.emphases.map((e,i)=><div key={i} style={{fontSize:".8rem",color:"var(--tx2)",padding:"3px 0",display:"flex",gap:6}}><span style={{color:"var(--ok)"}}>✓</span>{e}</div>)}
+            </div>
+            <div style={{background:"rgba(139,92,246,.07)",border:"1px solid rgba(139,92,246,.2)",borderRadius:"var(--r2)",padding:"9px 13px",marginBottom:14}}>
+              <div style={{fontSize:".77rem",fontWeight:600,color:"var(--violet)",marginBottom:3}}>📝 תבנית לתלמיד:</div>
+              <div style={{fontSize:".81rem",color:"var(--tx)",fontStyle:"italic"}}>{ex.template}</div>
+            </div>
+            <div style={{fontSize:".82rem",fontWeight:600,color:"var(--teal)",marginBottom:8}}>💬 דוגמת דיאלוג אמיתי:</div>
+            {ex.dialog.map((d,i)=>(
+              <div key={i} style={{display:"flex",gap:9,marginBottom:7,alignItems:"flex-start",
+                flexDirection:d.who==="תלמיד"?"row-reverse":"row"}}>
+                <div style={{fontSize:"1.1rem"}}>{d.who==="תלמיד"?"🎒":"🤖"}</div>
+                <div style={{background:d.who==="תלמיד"?"rgba(45,212,191,.1)":"var(--bg3)",
+                  border:`1px solid ${d.who==="תלמיד"?"rgba(45,212,191,.25)":"var(--border)"}`,
+                  borderRadius:"var(--r2)",padding:"7px 11px",maxWidth:"80%",
+                  fontSize:".8rem",lineHeight:1.6}}>
+                  <div style={{fontSize:".69rem",color:"var(--tx3)",marginBottom:3}}>{d.who}</div>
+                  {d.msg}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        {/* ── SECURITY TAB ── */}
+        {tab==="security"&&(
+          <>
+            <div style={{fontSize:".94rem",fontWeight:700,color:"var(--rose)",marginBottom:14}}>🔒 אבטחת מידע</div>
+            {[
+              {icon:"🏫",t:"בידוד מוסדי מלא",d:`כל בית ספר מנוהל בנפרד. מפתח: inst:{קוד}:* — מורה מבי"ס אחד לא רואה נתוני בי"ס אחר.`},
+              {icon:"👤",t:"הרשאות תפקיד",d:"מנהל מערכת ← מורה ← תלמיד. כל תפקיד רואה רק את הנתונים שלו."},
+              {icon:"🔐",t:"סיסמאות",d:"מאוחסנות כ-hash (לא plaintext). לפני הפצה רחבה: שדרג ל-bcrypt."},
+              {icon:"🤖",t:"Claude API",d:"קריאות ה-API עוברות דרך שרת Next.js — המפתח לעולם לא חשוף בדפדפן."},
+              {icon:"🗄️",t:"בסיס נתונים",d:"Neon PostgreSQL עם Row Level Security — גישה מבודדת לפי מוסד."},
+            ].map((item,i)=>(
+              <div key={i} style={{display:"flex",gap:11,marginBottom:11,padding:"11px 14px",
+                background:"var(--bg3)",border:"1px solid var(--border)",borderRadius:"var(--r)"}}>
+                <span style={{fontSize:"1.3rem"}}>{item.icon}</span>
+                <div><div style={{fontWeight:600,fontSize:".86rem",marginBottom:2}}>{item.t}</div>
+                  <div style={{fontSize:".8rem",color:"var(--tx2)",lineHeight:1.5}}>{item.d}</div></div>
+              </div>
+            ))}
+          </>
+        )}
+
+        <button className="btn bp wf" style={{marginTop:14}} onClick={onClose}>הבנתי — סגור מדריך</button>
+        <div style={{textAlign:"center",fontSize:".67rem",color:"var(--tx3)",marginTop:9}}>© כל הזכויות שמורות לשוורץ אבי</div>
+      </div>
+    </div>
+  );
+}
         <div style={{marginBottom:22}}>
           <div className="gs">🎓 מה זה בוט לימוד?</div>
           <p style={{fontSize:".86rem",color:"var(--tx2)",lineHeight:1.7}}>
@@ -787,55 +1066,178 @@ function ChatView({unit,langPair,userData,onBack,onSessionEnd}){
 }
 
 // ============================================================
-// CREATE UNIT MODAL
+// CREATE UNIT MODAL — 3-step wizard with subject defaults
 // ============================================================
 function CreateUnitModal({materials,onSave,onClose}){
-  const [form,setForm]=useState({title:"",subject:SUBJECTS[0],grade:GRADES[3],question:"",taskType:TASK_TYPES[0],supportLevel:2,hintPolicy:"3",materialIds:[]});
+  const [step,setStep]=useState(1);
+  const [form,setForm]=useState({
+    title:"",subject:SUBJECTS[0],grade:GRADES[3],
+    question:"",taskType:SKILL_TYPES[0],
+    supportLevel:2,hintPolicy:"3",materialIds:[],
+    materialContent:"",bagrutEmphases:[],
+    templates:[],keywords:[],skills:[],customEmphasis:""
+  });
+  useEffect(()=>{
+    const def=SUBJECT_DEFAULTS[form.subject]||{};
+    setForm(f=>({...f,bagrutEmphases:def.emphases||[],templates:def.templates||[],skills:def.skills||[]}));
+  },[form.subject]);
   const fil=materials.filter(m=>m.subject===form.subject&&m.grade===form.grade);
   const togM=id=>setForm(f=>({...f,materialIds:f.materialIds.includes(id)?f.materialIds.filter(x=>x!==id):[...f.materialIds,id]}));
-  const sel=materials.filter(m=>form.materialIds.includes(m.id));
-  const kw=[...new Set(sel.flatMap(m=>m.keywords))];
-  const tmpl=[...new Set(sel.flatMap(m=>m.templates))];
+  const selMats=materials.filter(m=>form.materialIds.includes(m.id));
+  const autoKw=[...new Set(selMats.flatMap(m=>m.keywords))];
+  const allKw=[...new Set([...autoKw,...form.keywords])];
+  const addEm=()=>{if(!form.customEmphasis.trim())return;setForm(f=>({...f,bagrutEmphases:[...f.bagrutEmphases,f.customEmphasis.trim()],customEmphasis:""}));};
+  const remEm=e=>setForm(f=>({...f,bagrutEmphases:f.bagrutEmphases.filter(x=>x!==e)}));
+  const STEPS=[{n:1,l:"📋 בסיס"},{n:2,l:"📚 חומר"},{n:3,l:"🎯 פדגוגיה"}];
   return(
     <div className="ov" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="mo wide">
-        <div className="mo-t">➕ יצירת יחידת למידה חדשה</div>
-        <div className="g2">
-          <div className="fg"><label className="fl">מקצוע</label><select className="fc" value={form.subject} onChange={e=>setForm(p=>({...p,subject:e.target.value}))}>{SUBJECTS.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div className="fg"><label className="fl">כיתה</label><select className="fc" value={form.grade} onChange={e=>setForm(p=>({...p,grade:e.target.value}))}>{GRADES.map(g=><option key={g}>{g}</option>)}</select></div>
+      <div className="mo wide" style={{maxWidth:720}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div className="mo-t" style={{marginBottom:0}}>➕ יצירת יחידת למידה</div>
+          <button className="btn bg sm" onClick={onClose}>✕</button>
         </div>
-        <div className="fg"><label className="fl">כותרת היחידה</label><input className="fc" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="גורמי העלייה מברית המועצות"/></div>
-        <div className="fg"><label className="fl">שאלת הלמידה / המשימה</label><textarea className="fc" value={form.question} onChange={e=>setForm(p=>({...p,question:e.target.value}))} rows={3} placeholder="מה על התלמיד לעשות?"/></div>
-        <div className="g2">
-          <div className="fg"><label className="fl">סוג משימה</label><select className="fc" value={form.taskType} onChange={e=>setForm(p=>({...p,taskType:e.target.value}))}>{TASK_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
-          <div className="fg"><label className="fl">מדיניות רמזים</label><select className="fc" value={form.hintPolicy} onChange={e=>setForm(p=>({...p,hintPolicy:e.target.value}))}>{HINT_POLICIES.map(h=><option key={h.id} value={h.id}>{h.label}</option>)}</select></div>
+        {/* Step tabs */}
+        <div style={{display:"flex",gap:4,marginBottom:18,background:"var(--bg3)",borderRadius:"var(--r2)",padding:4}}>
+          {STEPS.map(s=><div key={s.n} onClick={()=>setStep(s.n)}
+            style={{flex:1,textAlign:"center",padding:"7px 0",borderRadius:7,cursor:"pointer",fontSize:".81rem",fontWeight:600,
+              background:step===s.n?"var(--teal)":"transparent",color:step===s.n?"var(--bg)":"var(--tx2)"}}>{s.l}</div>)}
         </div>
-        <div className="fg">
-          <label className="fl">רמת תמיכה דו-לשונית</label>
-          <div style={{display:"flex",flexDirection:"column",gap:7}}>
-            {SUPPORT_LEVELS.map(sl=>(
-              <label key={sl.id} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"8px 12px",borderRadius:8,border:`1px solid ${form.supportLevel===sl.id?"var(--teal)":"var(--border)"}`,background:form.supportLevel===sl.id?"rgba(45,212,191,.05)":"var(--bg3)"}}>
-                <input type="radio" name="sl" checked={form.supportLevel===sl.id} onChange={()=>setForm(p=>({...p,supportLevel:sl.id}))}/>
-                <div><div style={{fontWeight:600,fontSize:".83rem"}}>רמה {sl.id}: {sl.label}</div><div style={{fontSize:".74rem",color:"var(--tx2)"}}>{sl.desc}</div></div>
-              </label>
-            ))}
+        {/* STEP 1 */}
+        {step===1&&<>
+          <div className="g2">
+            <div className="fg"><label className="fl">מקצוע</label><select className="fc" value={form.subject} onChange={e=>setForm(p=>({...p,subject:e.target.value}))}>{SUBJECTS.map(s=><option key={s}>{s}</option>)}</select></div>
+            <div className="fg"><label className="fl">כיתה</label><select className="fc" value={form.grade} onChange={e=>setForm(p=>({...p,grade:e.target.value}))}>{GRADES.map(g=><option key={g}>{g}</option>)}</select></div>
           </div>
-        </div>
-        {fil.length>0&&<div className="fg">
-          <label className="fl">חומרים ({form.subject}·{form.grade})</label>
-          {fil.map(m=>(
-            <label key={m.id} className={`mc ${form.materialIds.includes(m.id)?"sel":""}`} style={{display:"block"}}>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input type="checkbox" checked={form.materialIds.includes(m.id)} onChange={()=>togM(m.id)}/>
-                <div><div style={{fontWeight:600,fontSize:".86rem"}}>{m.title}</div><div style={{fontSize:".72rem",color:"var(--tx3)"}}>{m.author}{m.shared?" · 🤝 משותף":""}</div></div>
+          <div className="fg"><label className="fl">כותרת היחידה</label>
+            <input className="fc" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))}
+              placeholder={form.subject==="היסטוריה"?"גורמי העלייה מברית המועצות":form.subject==="ספרות"?"ניתוח שיר לאה גולדברג":form.subject==="אזרחות"?"זכויות אדם בישראל":"סיפור יוסף ואחיו"}/></div>
+          <div className="fg"><label className="fl">שאלת הלמידה — מה על התלמיד לעשות?</label>
+            <textarea className="fc" value={form.question} onChange={e=>setForm(p=>({...p,question:e.target.value}))} rows={3}
+              placeholder={form.subject==="היסטוריה"?"הסבר שני גורמים מרכזיים לעלייה הגדולה מברית המועצות בשנות ה-90":form.subject==="ספרות"?"זהה שני אמצעים אמנותיים בשיר והסבר את תפקידם":form.subject==="אזרחות"?"הגדר את הזכות לשוויון והבא דוגמה מהחוק הישראלי":"פרש את הפסוק וקשר אותו לנושא הסליחה"}/></div>
+          <div className="g2">
+            <div className="fg"><label className="fl">סוג משימה</label><select className="fc" value={form.taskType} onChange={e=>setForm(p=>({...p,taskType:e.target.value}))}>{SKILL_TYPES.map(t=><option key={t}>{t}</option>)}</select></div>
+            <div className="fg"><label className="fl">מדיניות רמזים</label><select className="fc" value={form.hintPolicy} onChange={e=>setForm(p=>({...p,hintPolicy:e.target.value}))}>{HINT_POLICIES.map(h=><option key={h.id} value={h.id}>{h.label}</option>)}</select></div>
+          </div>
+          <div className="fg">
+            <label className="fl">רמת תמיכה דו-לשונית</label>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {SUPPORT_LEVELS.map(sl=>(
+                <label key={sl.id} style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"8px 12px",borderRadius:8,
+                  border:`1px solid ${form.supportLevel===sl.id?"var(--teal)":"var(--border)"}`,
+                  background:form.supportLevel===sl.id?"rgba(45,212,191,.06)":"var(--bg3)"}}>
+                  <input type="radio" name="sl" checked={form.supportLevel===sl.id} onChange={()=>setForm(p=>({...p,supportLevel:sl.id}))}/>
+                  <div><div style={{fontWeight:600,fontSize:".82rem"}}>רמה {sl.id}: {sl.label}</div><div style={{fontSize:".73rem",color:"var(--tx2)"}}>{sl.desc}</div></div>
+                </label>
+              ))}
+            </div>
+          </div>
+        </>}
+        {/* STEP 2 */}
+        {step===2&&<>
+          <div className="alrt ai" style={{marginBottom:14}}>החומר שתעלה נכנס לסיסטם פרומפט של הבוט — הוא ישתמש בו להנחות את התלמיד.</div>
+          <div className="fg"><label className="fl">📄 חומר לימוד — סיכום הנושא / טקסט לניתוח</label>
+            <textarea className="fc" value={form.materialContent} onChange={e=>setForm(p=>({...p,materialContent:e.target.value}))} rows={7}
+              placeholder={form.subject==="היסטוריה"
+                ?"לדוגמה:
+גורמי העלייה הגדולה:
+1. גורמים פוליטיים: נפילת ברה"מ, גלאסנוסט
+2. גורמים כלכליים: משבר, אבטלה
+3. גורמים תרבותיים: גאווה יהודית, אנטישמיות
+תוצאה: ~מיליון עולים ב-1990-2000"
+                :form.subject==="ספרות"
+                ?"לדוגמה:
+שיר 'לי ולך' — לאה גולדברג
+דובר: אישה פונה לאהובה
+מוטיב: פרידה ואהבה
+אמצעים: אנפורה, מטפורה
+מסר: האהבה נמשכת גם בפרידה"
+                :"הכנס כאן: סיכום הנושא, פסוקים, הגדרות מושגים..."}/></div>
+          <div className="fg"><label className="fl">🔑 מילות מפתח</label>
+            <input className="fc" value={form.keywords.join(", ")}
+              onChange={e=>setForm(p=>({...p,keywords:e.target.value.split(",").map(k=>k.trim()).filter(Boolean)}))}
+              placeholder={(SUBJECT_DEFAULTS[form.subject]?.skills||[]).join(", ")}/>
+            {autoKw.length>0&&<div style={{marginTop:5,display:"flex",gap:4,flexWrap:"wrap"}}>
+              <span style={{fontSize:".7rem",color:"var(--tx3)"}}>מהחומרים:</span>
+              {autoKw.map(k=><span key={k} onClick={()=>setForm(f=>({...f,keywords:[...new Set([...f.keywords,k])]}))}
+                className="tag tv" style={{cursor:"pointer",fontSize:".7rem"}}>{k} +</span>)}</div>}
+          </div>
+          {fil.length>0&&<div className="fg"><label className="fl">📂 חומרים קיימים ({form.subject}·{form.grade})</label>
+            {fil.map(m=>(
+              <label key={m.id} className={`mc ${form.materialIds.includes(m.id)?"sel":""}`} style={{display:"block",marginBottom:6}}>
+                <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
+                  <input type="checkbox" checked={form.materialIds.includes(m.id)} onChange={()=>togM(m.id)} style={{marginTop:3}}/>
+                  <div><div style={{fontWeight:600,fontSize:".85rem"}}>{m.title}</div>
+                    <div style={{fontSize:".73rem",color:"var(--tx2)",lineHeight:1.5,marginTop:1}}>{m.content.slice(0,80)}...</div>
+                    <div style={{fontSize:".7rem",color:"var(--tx3)",marginTop:1}}>{m.author}{m.shared?" · 🤝":""}</div></div>
+                </div>
+              </label>
+            ))}</div>}
+        </>}
+        {/* STEP 3 */}
+        {step===3&&<>
+          <div className="fg">
+            <label className="fl">🎯 דגשי בגרות — מה הבוחן מצפה לראות</label>
+            <div style={{background:"var(--bg3)",borderRadius:"var(--r2)",padding:11,marginBottom:9}}>
+              <div style={{fontSize:".73rem",color:"var(--tx3)",marginBottom:7}}>ברירות מחדל ל{form.subject} — לחץ ✕ להסרה:</div>
+              {form.bagrutEmphases.map((e,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5,padding:"5px 9px",
+                  background:"rgba(45,212,191,.06)",border:"1px solid rgba(45,212,191,.14)",borderRadius:6}}>
+                  <span style={{fontSize:".81rem",flex:1,color:"var(--tx)",lineHeight:1.5}}>✓ {e}</span>
+                  <button onClick={()=>remEm(e)} style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer"}}>✕</button>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",gap:7}}>
+              <input className="fc" value={form.customEmphasis} onChange={e=>setForm(p=>({...p,customEmphasis:e.target.value}))}
+                placeholder="הוסף דגש נוסף..." onKeyDown={e=>e.key==="Enter"&&addEm()} style={{flex:1}}/>
+              <button className="btn bs sm" onClick={addEm}>הוסף</button>
+            </div>
+          </div>
+          <div className="fg">
+            <label className="fl">📝 תבניות כתיבה — הבוט ישתמש בהן כרמזים</label>
+            {form.templates.map((t,i)=>(
+              <div key={i} style={{display:"flex",gap:7,marginBottom:6,alignItems:"flex-start"}}>
+                <textarea className="fc" value={t} rows={2} style={{flex:1,fontSize:".81rem"}}
+                  onChange={e=>setForm(f=>({...f,templates:f.templates.map((x,j)=>j===i?e.target.value:x)}))}/>
+                <button onClick={()=>setForm(f=>({...f,templates:f.templates.filter((_,j)=>j!==i)}))}
+                  style={{background:"none",border:"none",color:"var(--tx3)",cursor:"pointer",marginTop:7}}>🗑</button>
               </div>
-            </label>
-          ))}
-        </div>}
-        {kw.length>0&&<div className="alrt ai" style={{marginBottom:11}}>🔑 מילות מפתח: {kw.join(", ")}</div>}
-        <div style={{display:"flex",gap:9,marginTop:4}}>
-          <button className="btn bp" disabled={!form.title||!form.question} onClick={()=>{onSave({...form,id:Date.now().toString(),keywords:kw,templates:tmpl});onClose();}}>צור יחידה</button>
-          <button className="btn bs" onClick={onClose}>ביטול</button>
+            ))}
+            <button className="btn bs sm" onClick={()=>setForm(f=>({...f,templates:[...f.templates,"_______ משום ש_______. הדבר בא לידי ביטוי ב_______."]}))}> ➕ הוסף תבנית</button>
+          </div>
+          <div className="fg">
+            <label className="fl">💪 מיומנויות לתרגול</label>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {(SUBJECT_DEFAULTS[form.subject]?.skills||[]).map(s=>(
+                <div key={s} onClick={()=>setForm(f=>({...f,skills:f.skills.includes(s)?f.skills.filter(x=>x!==s):[...f.skills,s]}))}
+                  className={`tag ${form.skills.includes(s)?"tg":"tv"}`}
+                  style={{cursor:"pointer",padding:"5px 11px",fontSize:".77rem"}}>
+                  {form.skills.includes(s)?"✓ ":""}{s}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{background:"var(--bg3)",borderRadius:"var(--r2)",padding:12,marginTop:4}}>
+            <div style={{fontSize:".77rem",fontWeight:600,color:"var(--teal)",marginBottom:6}}>👁 תצוגה מקדימה — מה הבוט יקבל:</div>
+            <div style={{fontSize:".73rem",color:"var(--tx2)",lineHeight:1.7,whiteSpace:"pre-line"}}>
+              {`מקצוע: ${form.subject} | כיתה: ${form.grade}\nשאלה: ${form.question||"(לא הוגדר)"}\nחומר: ${form.materialContent?form.materialContent.slice(0,60)+"...":"לא הוזן"}\nדגשים: ${form.bagrutEmphases.length} | תבניות: ${form.templates.length} | מילות מפתח: ${allKw.length}`}
+            </div>
+          </div>
+        </>}
+        {/* Nav buttons */}
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:18,gap:9}}>
+          <div>{step>1&&<button className="btn bs" onClick={()=>setStep(s=>s-1)}>← חזרה</button>}</div>
+          <div style={{display:"flex",gap:9}}>
+            <button className="btn bs" onClick={onClose}>ביטול</button>
+            {step<3
+              ?<button className="btn bp" disabled={step===1&&(!form.title||!form.question)} onClick={()=>setStep(s=>s+1)}>המשך →</button>
+              :<button className="btn bp" disabled={!form.title||!form.question} onClick={()=>{
+                onSave({...form,id:Date.now().toString(),keywords:allKw,
+                  skills:form.skills.length?form.skills:(SUBJECT_DEFAULTS[form.subject]?.skills||[])});
+                onClose();
+              }}>✅ צור יחידה</button>
+            }
+          </div>
         </div>
       </div>
     </div>
@@ -843,27 +1245,61 @@ function CreateUnitModal({materials,onSave,onClose}){
 }
 
 // ============================================================
-// UPLOAD MODAL
+// UPLOAD MODAL — enhanced with subject defaults
 // ============================================================
 function UploadModal({onSave,onClose}){
-  const [form,setForm]=useState({title:"",subject:SUBJECTS[0],grade:GRADES[3],content:"",keywords:"",shared:false});
+  const [form,setForm]=useState({title:"",subject:SUBJECTS[0],grade:GRADES[3],content:"",keywords:"",templates:"",shared:false});
+  const def=SUBJECT_DEFAULTS[form.subject]||{};
   return(
     <div className="ov" onClick={e=>e.target===e.currentTarget&&onClose()}>
-      <div className="mo">
-        <div className="mo-t">📤 העלאת חומר לימודי</div>
+      <div className="mo wide">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+          <div className="mo-t" style={{marginBottom:0}}>📤 העלאת חומר לימודי</div>
+          <button className="btn bg sm" onClick={onClose}>✕</button>
+        </div>
         <div className="g2">
           <div className="fg"><label className="fl">מקצוע</label><select className="fc" value={form.subject} onChange={e=>setForm(p=>({...p,subject:e.target.value}))}>{SUBJECTS.map(s=><option key={s}>{s}</option>)}</select></div>
           <div className="fg"><label className="fl">כיתה</label><select className="fc" value={form.grade} onChange={e=>setForm(p=>({...p,grade:e.target.value}))}>{GRADES.map(g=><option key={g}>{g}</option>)}</select></div>
         </div>
-        <div className="fg"><label className="fl">כותרת</label><input className="fc" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="שם הנושא"/></div>
-        <div className="fg"><label className="fl">תוכן</label><textarea className="fc" value={form.content} onChange={e=>setForm(p=>({...p,content:e.target.value}))} rows={5} placeholder="הדבק טקסט, סיכום, שאלות..."/></div>
-        <div className="fg"><label className="fl">מילות מפתח (מופרדות בפסיק)</label><input className="fc" value={form.keywords} onChange={e=>setForm(p=>({...p,keywords:e.target.value}))} placeholder="עלייה, ברית המועצות"/></div>
-        <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"10px 13px",background:"var(--bg3)",borderRadius:"var(--r2)",border:"1px solid var(--border)",marginBottom:15}}>
+        <div className="fg"><label className="fl">כותרת החומר</label>
+          <input className="fc" value={form.title} onChange={e=>setForm(p=>({...p,title:e.target.value}))} placeholder="שם הנושא / הפרק / היצירה"/></div>
+        <div className="fg"><label className="fl">📄 תוכן החומר</label>
+          <textarea className="fc" value={form.content} onChange={e=>setForm(p=>({...p,content:e.target.value}))} rows={6}
+            placeholder={form.subject==="היסטוריה"?"הדבק: סיכום נושא, ציר זמן, גורמים ותוצאות, מקורות ראשוניים...":
+              form.subject==="ספרות"?"הדבק: טקסט השיר/הסיפור, ניתוח ראשוני, דמויות, נושאים...":
+              form.subject==="תנ"ך"?"הדבק: פסוקים, פרשנות, רקע היסטורי, נושאים מוסריים...":
+              "הדבק: הגדרות מושגים, חוקים רלוונטיים, דוגמאות מהמציאות..."}/></div>
+        <div className="fg"><label className="fl">🔑 מילות מפתח (מופרדות בפסיק)</label>
+          <input className="fc" value={form.keywords} onChange={e=>setForm(p=>({...p,keywords:e.target.value}))}
+            placeholder={(def.skills||[]).join(", ")||"מושג1, מושג2, מושג3"}/>
+          <div style={{marginTop:5,display:"flex",gap:4,flexWrap:"wrap"}}>
+            {(def.skills||[]).slice(0,4).map(s=>(
+              <span key={s} className="tag tv" style={{cursor:"pointer",fontSize:".69rem"}}
+                onClick={()=>setForm(f=>({...f,keywords:f.keywords?f.keywords+", "+s:s}))}>{s} +</span>
+            ))}
+          </div>
+        </div>
+        <div className="fg"><label className="fl">📝 תבניות כתיבה (שורה לכל תבנית)</label>
+          <textarea className="fc" value={form.templates} onChange={e=>setForm(p=>({...p,templates:e.target.value}))} rows={4}
+            placeholder={(def.templates||[]).join("\n")||"תבנית 1...\nתבנית 2..."}/>
+          {def.templates?.length>0&&<button className="btn bs sm" style={{marginTop:5}}
+            onClick={()=>setForm(f=>({...f,templates:def.templates.join("\n")}))}>
+            טען תבניות ברירת מחדל ל{form.subject}</button>}
+        </div>
+        <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",padding:"10px 13px",
+          background:"var(--bg3)",borderRadius:"var(--r2)",border:"1px solid var(--border)",marginBottom:15}}>
           <input type="checkbox" checked={form.shared} onChange={e=>setForm(p=>({...p,shared:e.target.checked}))}/>
-          <div><div style={{fontWeight:600,fontSize:".86rem"}}>🤝 שתף עם צוות המורים</div><div style={{fontSize:".74rem",color:"var(--tx2)"}}>מורה אחר באותו מקצוע ושכבה יוכל להשתמש בחומר</div></div>
+          <div><div style={{fontWeight:600,fontSize:".85rem"}}>🤝 שתף עם צוות המורים</div>
+            <div style={{fontSize:".73rem",color:"var(--tx2)"}}>מורים אחרים באותו מקצוע ושכבה יוכלו להשתמש</div></div>
         </label>
         <div style={{display:"flex",gap:9}}>
-          <button className="btn bp" disabled={!form.title||!form.content} onClick={()=>{onSave({...form,id:"m"+Date.now(),keywords:form.keywords.split(",").map(k=>k.trim()).filter(Boolean),templates:[],author:"המורה שלי",ownerId:"current"});onClose();}}>העלה חומר</button>
+          <button className="btn bp" disabled={!form.title||!form.content} onClick={()=>{
+            onSave({...form,id:"m"+Date.now(),
+              keywords:form.keywords.split(",").map(k=>k.trim()).filter(Boolean),
+              templates:form.templates.split("\n").map(t=>t.trim()).filter(Boolean),
+              author:"המורה שלי",ownerId:"current"});
+            onClose();
+          }}>העלה חומר</button>
           <button className="btn bs" onClick={onClose}>ביטול</button>
         </div>
       </div>
